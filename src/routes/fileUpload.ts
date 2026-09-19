@@ -12,7 +12,9 @@ fileUploadRouter.post(
   (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded. Expected multipart field "file".' });
+        return res
+          .status(400)
+          .json({ error: 'No file uploaded. Expected multipart field "file".' });
       }
 
       const frameCount = parseMp3FrameCount(req.file.buffer);
