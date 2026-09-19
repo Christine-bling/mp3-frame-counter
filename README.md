@@ -38,6 +38,12 @@ npm test
 - `InvalidMp3Error` — no valid frames found anywhere in the file. Not an MP3 at all, or too corrupted to parse.
 - `UnsupportedFormatError` — a valid, structurally correct frame header was found, but it's not MPEG-1 Layer III (e.g. MPEG-2, or a different Layer).
 
+## Scalability — known limitation
+
+The upload path uses `multer.memoryStorage()`, which buffers the **entire** file in memory before the parser ever runs. The file doesn't stream into `parseMp3FrameCount` piece by piece — by the time the handler is called, the whole thing is already one complete `Buffer`, and the parser just indexes into it freely.
+
+The implemented methodology is fine for files like the test sample (1.4MB) but it doesn't scale for large files and concurrent uploads. A streaming parser which processes bytes as they arrive would fix this. This is the main thing I'd change with more time.
+
 ## High-level methodology walk-through
 
 An MP3 file is a sequence of independent chunks (frames) glued end to end. Each frame is a compressed audio and has its own 4-byte header describing itself including bitrate index, sample rate index, padding bit which can be used to compute the length of the frame. We will scan and process chunks one by one, in order to count number of frames.
