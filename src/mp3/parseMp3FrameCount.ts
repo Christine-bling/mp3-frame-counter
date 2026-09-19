@@ -1,3 +1,5 @@
+import { InvalidMp3Error, UnsupportedFormatError } from './errors';
+
 // MPEG-1 Layer III bitrate table (kbps), indexed by the 4-bit bitrate index.
 const BITRATE_KBPS: readonly number[] = [
   -1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1,
@@ -100,7 +102,7 @@ export function parseMp3FrameCount(buffer: Buffer): number {
     // Skip if format is not supported
     if (!header.isMpeg1LayerIII) {
       if (count === 0) {
-        throw new Error('Unsupported format: not MPEG-1 Layer III');
+        throw new UnsupportedFormatError('Unsupported format: not MPEG-1 Layer III');
       }
       break;
     }
@@ -120,7 +122,7 @@ export function parseMp3FrameCount(buffer: Buffer): number {
   }
 
   if (count === 0) {
-    throw new Error('No valid MP3 frames found');
+    throw new InvalidMp3Error('No valid MP3 frames found');
   }
 
   return count;

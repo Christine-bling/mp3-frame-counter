@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { parseMp3FrameCount } from '../src/mp3/parseMp3FrameCount';
+import { InvalidMp3Error, UnsupportedFormatError } from '../src/mp3/errors';
 
 const samplePath = path.join(__dirname, 'fixtures', 'sample (2).mp3');
 
@@ -40,6 +41,14 @@ function buildXingFrameWithCrc(): Buffer {
   return frame;
 }
 
+// Same fields, but version bits set to MPEG2 (10) instead of MPEG1 (11) —
+// a validly-structured header, just not the format we support.
+const MPEG2_LAYER_III_HEADER = Buffer.from([0xff, 0xf3, 0x90, 0x00]);
+
+function buildMpeg2Frame(): Buffer {
+  return Buffer.concat([MPEG2_LAYER_III_HEADER, Buffer.alloc(FRAME_LENGTH - 4)]);
+}
+
 describe('parseMp3FrameCount', () => {
   it('matches the mediainfo ground-truth count for the real sample file', () => {
     const buffer = readFileSync(samplePath);
@@ -68,8 +77,18 @@ describe('parseMp3FrameCount', () => {
     expect(parseMp3FrameCount(buffer)).toBe(2);
   });
 
-  it('throws when no valid sync word exists anywhere in the buffer', () => {
+  it('throws InvalidMp3Error when no valid sync word exists anywhere in the buffer', () => {
     const buffer = Buffer.alloc(100, 0x00);
-    expect(() => parseMp3FrameCount(buffer)).toThrow();
+    expect(() => parseMp3FrameCount(buffer)).toThrow(InvalidMp3Error);
+  });
+
+  it('throws InvalidMp3Error when the very first frame is truncated (no frames counted yet)', () => {
+    const buffer = Buffer.concat([FRAME_HEADER, Buffer.alloc(10)]); // claims 418, only has 14
+    expect(() => parseMp3FrameCount(buffer)).toThrow(InvalidMp3Error);
+  });
+
+  it('throws UnsupportedFormatError for a valid header that is not MPEG-1 Layer III', () => {
+    const buffer = buildMpeg2Frame();
+    expect(() => parseMp3FrameCount(buffer)).toThrow(UnsupportedFormatError);
   });
 });

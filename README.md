@@ -33,9 +33,15 @@ Look for `Frame count` under the `Audio` section — it should match the value t
 npm test
 ```
 
-## High-level walk-through
+## Error handling
+
+- `InvalidMp3Error` — no valid frames found anywhere in the file. Not an MP3 at all, or too corrupted to parse.
+- `UnsupportedFormatError` — a valid, structurally correct frame header was found, but it's not MPEG-1 Layer III (e.g. MPEG-2, or a different Layer).
+
+## High-level methodology walk-through
 
 An MP3 file is a sequence of independent chunks (frames) glued end to end. Each frame is a compressed audio and has its own 4-byte header describing itself including bitrate index, sample rate index, padding bit which can be used to compute the length of the frame. We will scan and process chunks one by one, in order to count number of frames.
+Note: truncated frames aren't counted.
 
 ### Structure of a while file
 if (bytes 0-2 == "ID3"):
